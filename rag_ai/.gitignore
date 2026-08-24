@@ -1,5 +1,6 @@
 data/*.sqlite3
 data/*.sqlite3-*
 data/chroma/
+.env
 __pycache__/
 *.pyc

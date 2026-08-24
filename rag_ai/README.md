@@ -31,8 +31,14 @@ Each chunk stores:
 
 From the `rag_ai` directory:
 
+Create a local `.env` file first:
+
+```text
+OPENAI_API_KEY=your_openai_api_key_here
+```
+
 ```powershell
-python manage.py ingest_pdf "C:\Users\batoo\OneDrive\Desktop\Investment Rule.pdf"
+python manage.py ingest_pdf "C:\Users\batoo\OneDrive\Desktop\Investment Rule.pdf" --embedding-provider openai
 ```
 
 Optional settings:
@@ -50,7 +56,7 @@ rag_ai/data/chroma
 ## Search indexed chunks
 
 ```powershell
-python manage.py search_rag "ما هي شروط الاستثمار؟" --top-k 5
+python manage.py search_rag "ما هي شروط الاستثمار؟" --embedding-provider openai --top-k 5
 ```
 
 This returns the most relevant Chroma chunks with page numbers. The next step is to pass those chunks to an LLM and instruct it to answer only from the retrieved source text.
