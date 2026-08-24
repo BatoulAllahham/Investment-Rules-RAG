@@ -5,6 +5,7 @@ from pathlib import Path
 from django.conf import settings
 from django.core.management.base import BaseCommand
 
+from rag.services.collections import collection_name_for_provider
 from rag.services.ingestion import ingest_pdf
 
 
@@ -26,7 +27,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--embedding-provider",
             default="local",
-            choices=["local", "openai", "text-embedding-3-small"],
+            choices=["local", "openai", "openrouter", "text-embedding-3-small"],
             help="Embedding backend to use.",
         )
         parser.add_argument(
@@ -44,7 +45,10 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         chroma_path = Path(options["chroma_path"] or settings.RAG_CHROMA_PATH)
-        collection_name = options["collection"] or settings.RAG_CHROMA_COLLECTION
+        collection_name = options["collection"] or collection_name_for_provider(
+            settings.RAG_CHROMA_COLLECTION,
+            options["embedding_provider"],
+        )
         result = ingest_pdf(
             pdf_path=options["pdf_path"],
             persist_path=chroma_path,

@@ -34,11 +34,14 @@ From the `rag_ai` directory:
 Create a local `.env` file first:
 
 ```text
-OPENAI_API_KEY=your_openai_api_key_here
+OPENROUTER_API_KEY=your_openrouter_api_key_here
+OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
+OPENROUTER_APP_TITLE=Investment Rules RAG
+OPENROUTER_HTTP_REFERER=http://localhost:8000
 ```
 
 ```powershell
-python manage.py ingest_pdf "C:\Users\batoo\OneDrive\Desktop\Investment Rule.pdf" --embedding-provider openai
+python manage.py ingest_pdf "C:\Users\batoo\OneDrive\Desktop\Investment Rule.pdf" --embedding-provider openrouter
 ```
 
 Optional settings:
@@ -53,10 +56,16 @@ The default Chroma persistence path is:
 rag_ai/data/chroma
 ```
 
+By default, the command stores each embedding provider in a separate Chroma collection. For example, OpenRouter uses:
+
+```text
+investment_rules_openrouter
+```
+
 ## Search indexed chunks
 
 ```powershell
-python manage.py search_rag "ما هي شروط الاستثمار؟" --embedding-provider openai --top-k 5
+python manage.py search_rag "ما هي شروط الاستثمار؟" --embedding-provider openrouter --top-k 5
 ```
 
 This returns the most relevant Chroma chunks with page numbers. The next step is to pass those chunks to an LLM and instruct it to answer only from the retrieved source text.
@@ -65,4 +74,4 @@ This returns the most relevant Chroma chunks with page numbers. The next step is
 
 The project currently uses `local-hash-v1` by default. It is dependency-free and useful for proving that extraction, chunking, storage, and retrieval all work.
 
-For production-quality semantic search, switch to a real embedding model such as OpenAI `text-embedding-3-small`, sentence-transformers, or another multilingual embedding model. The embedding layer is isolated in `rag/services/embeddings.py` so this can be changed without rewriting the PDF extraction, chunking, or storage code.
+For production-quality semantic search, switch to a real embedding model such as OpenRouter `openai/text-embedding-3-small`, direct OpenAI `text-embedding-3-small`, sentence-transformers, or another multilingual embedding model. The embedding layer is isolated in `rag/services/embeddings.py` so this can be changed without rewriting the PDF extraction, chunking, or storage code.

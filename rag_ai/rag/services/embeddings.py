@@ -71,11 +71,47 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
         return [item.embedding for item in response.data]
 
 
+class OpenRouterEmbeddingProvider(EmbeddingProvider):
+    name = "openrouter-openai-text-embedding-3-small"
+    dimensions = 1536
+
+    def __init__(self, model: str = "openai/text-embedding-3-small"):
+        self.model = model
+        self.name = f"openrouter-{model.replace('/', '-')}"
+
+    def embed(self, texts: list[str]) -> list[list[float]]:
+        try:
+            from openai import OpenAI
+        except ImportError as exc:
+            raise RuntimeError("Install the openai package to use OpenRouter embeddings.") from exc
+
+        api_key = os.getenv("OPENROUTER_API_KEY")
+        if not api_key:
+            raise RuntimeError("Set OPENROUTER_API_KEY before using OpenRouter embeddings.")
+
+        headers = {}
+        referer = os.getenv("OPENROUTER_HTTP_REFERER")
+        title = os.getenv("OPENROUTER_APP_TITLE")
+        if referer:
+            headers["HTTP-Referer"] = referer
+        if title:
+            headers["X-OpenRouter-Title"] = title
+
+        client = OpenAI(
+            base_url=os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"),
+            api_key=api_key,
+            default_headers=headers or None,
+        )
+        response = client.embeddings.create(model=self.model, input=texts)
+        return [item.embedding for item in response.data]
+
+
 def get_embedding_provider(name: str = "local") -> EmbeddingProvider:
     normalized = name.strip().lower()
     if normalized in {"local", "hash", "local-hash"}:
         return LocalHashEmbeddingProvider()
     if normalized in {"openai", "text-embedding-3-small"}:
         return OpenAIEmbeddingProvider()
+    if normalized in {"openrouter", "openrouter-openai", "openai/text-embedding-3-small"}:
+        return OpenRouterEmbeddingProvider()
     raise ValueError(f"Unknown embedding provider: {name}")
-

@@ -5,6 +5,7 @@ from pathlib import Path
 from django.conf import settings
 from django.core.management.base import BaseCommand
 
+from rag.services.collections import collection_name_for_provider
 from rag.services.search import search_chunks
 
 
@@ -26,14 +27,17 @@ class Command(BaseCommand):
         parser.add_argument(
             "--embedding-provider",
             default="local",
-            choices=["local", "openai", "text-embedding-3-small"],
+            choices=["local", "openai", "openrouter", "text-embedding-3-small"],
             help="Embedding backend used during ingestion.",
         )
         parser.add_argument("--top-k", type=int, default=5)
 
     def handle(self, *args, **options):
         chroma_path = Path(options["chroma_path"] or settings.RAG_CHROMA_PATH)
-        collection_name = options["collection"] or settings.RAG_CHROMA_COLLECTION
+        collection_name = options["collection"] or collection_name_for_provider(
+            settings.RAG_CHROMA_COLLECTION,
+            options["embedding_provider"],
+        )
         results = search_chunks(
             question=options["question"],
             persist_path=chroma_path,
