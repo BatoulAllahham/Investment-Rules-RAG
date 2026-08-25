@@ -43,6 +43,12 @@ OPENROUTER_EMBEDDING_MODEL=nvidia/nemotron-3-embed-1b:free
 RAG_CHAT_MODEL=openrouter/free
 RAG_OCR_MODEL=openrouter/free
 RAG_OCR_PDF_ENGINE=cloudflare-ai
+RAG_DEFAULT_TOP_K=5
+RAG_REQUEST_TIMEOUT=180
+RAG_EMBEDDING_TIMEOUT=120
+RAG_OCR_TIMEOUT=180
+RAG_SOURCE_MAX_CHARS=1200
+RAG_MAX_OUTPUT_TOKENS=700
 ```
 
 ```powershell
@@ -97,7 +103,7 @@ The default answer model is:
 openrouter/free
 ```
 
-This uses OpenRouter's free model router. OCR uses OpenRouter's free `cloudflare-ai` PDF engine. Free models are useful for demos and low-volume testing, but they can have lower rate limits, changing availability, and less predictable answer quality than paid models.
+This uses OpenRouter's free model router. OCR uses OpenRouter's free `cloudflare-ai` PDF engine. Free models are useful for demos and low-volume testing, but they can have lower rate limits, changing availability, slower responses, and less predictable answer quality than paid models.
 
 ## Ask through the backend API
 
