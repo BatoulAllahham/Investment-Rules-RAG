@@ -8,11 +8,12 @@ from pathlib import Path
 from django.conf import settings
 from django.http import HttpRequest, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_GET, require_POST
 
 from rag.services.collections import collection_name_for_provider
 from rag.services.embeddings import get_embedding_provider
 from rag.services.qa import ask_question
+from rag.services.vector_store import ChromaVectorStore
 
 
 @csrf_exempt
@@ -38,7 +39,7 @@ def ask_rag_api(request: HttpRequest) -> JsonResponse:
     )
 
     try:
-        top_k = int(payload.get("top_k", 5))
+        top_k = int(payload.get("top_k", settings.RAG_DEFAULT_TOP_K))
         temperature = float(payload.get("temperature", 0.1))
     except (TypeError, ValueError):
         return JsonResponse(
@@ -62,7 +63,7 @@ def ask_rag_api(request: HttpRequest) -> JsonResponse:
             temperature=temperature,
         )
     except Exception as exc:
-        return JsonResponse({"error": str(exc)}, status=500)
+        return JsonResponse({"error": str(exc)}, status=_status_for_exception(exc))
 
     return JsonResponse(
         {
@@ -92,3 +93,43 @@ def ask_rag_api(request: HttpRequest) -> JsonResponse:
 
 def _single_line(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
+
+
+def _status_for_exception(exc: Exception) -> int:
+    status_code = getattr(exc, "status_code", None)
+    if status_code:
+        return int(status_code)
+
+    message = str(exc).lower()
+    if "timeout" in message or "timed out" in message or "request time out" in message:
+        return 504
+    return 500
+
+
+@require_GET
+def rag_sources_api(request: HttpRequest) -> JsonResponse:
+    embedding_provider_name = request.GET.get(
+        "embedding_provider",
+        settings.RAG_EMBEDDING_PROVIDER,
+    )
+    provider = get_embedding_provider(str(embedding_provider_name))
+    collection_name = request.GET.get("collection") or collection_name_for_provider(
+        settings.RAG_CHROMA_COLLECTION,
+        provider.name,
+    )
+    chroma_path = Path(request.GET.get("chroma_path") or settings.RAG_CHROMA_PATH)
+
+    try:
+        store = ChromaVectorStore(chroma_path, collection_name)
+        sources = store.source_stats()
+    except Exception as exc:
+        return JsonResponse({"error": str(exc)}, status=_status_for_exception(exc))
+
+    return JsonResponse(
+        {
+            "collection": collection_name,
+            "total_chunks": store.count_chunks(),
+            "sources": sources,
+        },
+        json_dumps_params={"ensure_ascii": False},
+    )
