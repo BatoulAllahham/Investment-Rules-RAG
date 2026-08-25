@@ -130,3 +130,5 @@ RAG_CHROMA_PATH = BASE_DIR / 'data' / 'chroma'
 RAG_CHROMA_COLLECTION = 'investment_rules'
 RAG_EMBEDDING_PROVIDER = os.getenv('RAG_EMBEDDING_PROVIDER', 'openrouter')
 RAG_CHAT_MODEL = os.getenv('RAG_CHAT_MODEL', 'openrouter/free')
+RAG_OCR_MODEL = os.getenv('RAG_OCR_MODEL', 'openrouter/free')
+RAG_OCR_PDF_ENGINE = os.getenv('RAG_OCR_PDF_ENGINE', 'cloudflare-ai')
