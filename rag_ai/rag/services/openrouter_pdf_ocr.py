@@ -81,7 +81,7 @@ def _extract_page_text(pdf_bytes: bytes, filename: str) -> str:
                 }
             ],
         },
-        timeout=120,
+        timeout=_env_float("RAG_OCR_TIMEOUT", 180.0),
     )
 
     try:
@@ -123,3 +123,10 @@ def _headers(api_key: str) -> dict[str, str]:
     if title:
         headers["X-OpenRouter-Title"] = title
     return headers
+
+
+def _env_float(name: str, default: float) -> float:
+    try:
+        return float(os.getenv(name, default))
+    except (TypeError, ValueError):
+        return default

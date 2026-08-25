@@ -36,7 +36,7 @@ class Command(BaseCommand):
             default=None,
             help="OpenRouter chat model. Defaults to RAG_CHAT_MODEL.",
         )
-        parser.add_argument("--top-k", type=int, default=5)
+        parser.add_argument("--top-k", type=int, default=None)
         parser.add_argument("--temperature", type=float, default=0.1)
 
     def handle(self, *args, **options):
@@ -55,7 +55,7 @@ class Command(BaseCommand):
             collection_name=collection_name,
             embedding_provider=embedding_provider,
             chat_model=chat_model,
-            top_k=options["top_k"],
+            top_k=options["top_k"] or settings.RAG_DEFAULT_TOP_K,
             temperature=options["temperature"],
         )
 

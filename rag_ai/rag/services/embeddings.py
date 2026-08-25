@@ -66,7 +66,7 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
         if not os.getenv("OPENAI_API_KEY"):
             raise RuntimeError("Set OPENAI_API_KEY before using OpenAI embeddings.")
 
-        client = OpenAI()
+        client = OpenAI(timeout=_env_float("RAG_EMBEDDING_TIMEOUT", 120.0))
         response = client.embeddings.create(
             model=self.model,
             input=texts,
@@ -109,6 +109,7 @@ class OpenRouterEmbeddingProvider(EmbeddingProvider):
             base_url=os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"),
             api_key=api_key,
             default_headers=headers or None,
+            timeout=_env_float("RAG_EMBEDDING_TIMEOUT", 120.0),
         )
         response = client.embeddings.create(
             model=self.model,
@@ -127,3 +128,10 @@ def get_embedding_provider(name: str = "local") -> EmbeddingProvider:
     if normalized in {"openrouter", "openrouter-openai", "openai/text-embedding-3-small"}:
         return OpenRouterEmbeddingProvider()
     raise ValueError(f"Unknown embedding provider: {name}")
+
+
+def _env_float(name: str, default: float) -> float:
+    try:
+        return float(os.getenv(name, default))
+    except (TypeError, ValueError):
+        return default

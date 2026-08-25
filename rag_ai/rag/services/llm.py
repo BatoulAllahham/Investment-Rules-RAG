@@ -40,11 +40,13 @@ def answer_with_openrouter(
         base_url=os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"),
         api_key=api_key,
         default_headers=_openrouter_headers(),
+        timeout=_env_float("RAG_REQUEST_TIMEOUT", 180.0),
     )
 
     response = client.chat.completions.create(
         model=model,
         temperature=temperature,
+        max_tokens=_env_int("RAG_MAX_OUTPUT_TOKENS", 700),
         messages=[
             {
                 "role": "system",
@@ -55,8 +57,12 @@ def answer_with_openrouter(
                     "If the answer is not supported by the excerpts, say that the document "
                     "does not provide enough information. Cite source numbers and page numbers. "
                     "When possible, cite the document filename together with the page number. "
+                    "If relevant excerpts come from more than one document, use the strongest "
+                    "evidence from all relevant documents instead of relying on only one file. "
                     "Write the final answer as plain text only. Do not use Markdown, headings, "
                     "bullet points, numbered lists, hashtags, asterisks, or line breaks. "
+                    "Do not show analysis, reasoning, scratchpad, or planning. "
+                    "Output exactly one line that starts with FINAL: followed by the Arabic answer only. "
                     "When answering in Arabic, start with a natural legal phrase such as "
                     "'بناء على' and mention the article/law only if it is present in the excerpts."
                 ),
@@ -84,9 +90,12 @@ def _build_user_prompt(question: str, sources: list[SearchResult]) -> str:
         "- Answer in the same language as the question when possible.\n"
         "- Use only the source excerpts above.\n"
         "- Write one concise plain-text answer, not Markdown.\n"
+        "- Start your response with FINAL: and put only the final answer after it.\n"
+        "- Do not include reasoning, analysis, notes, or phrases like 'We need to answer'.\n"
         "- Do not use headings, bullet points, numbered lists, #, **, or line breaks.\n"
         "- For Arabic answers, prefer this style: بناء على المادة المذكورة في القانون، ...\n"
         "- Include citations like [Investment Rule 2.pdf, page 12] or [Investment Rule 3.pdf, pages 4-5].\n"
+        "- If multiple documents contain relevant evidence, cite each relevant document.\n"
         "- If the answer is not present, say the document does not provide enough information.\n"
     )
 
@@ -99,7 +108,8 @@ def _format_source(index: int, source: SearchResult) -> str:
         else f"pages {source.page_start}-{source.page_end}"
     )
     section = f"\nSection: {source.section_title}" if source.section_title else ""
-    return f"[source {index}: {source_name}, {pages}]{section}\n{source.text}"
+    source_text = _trim_source_text(source.text)
+    return f"[source {index}: {source_name}, {pages}]{section}\n{source_text}"
 
 
 def _openrouter_headers() -> dict[str, str] | None:
@@ -114,11 +124,70 @@ def _openrouter_headers() -> dict[str, str] | None:
 
 
 def _clean_answer(answer: str) -> str:
-    cleaned = answer.strip()
+    cleaned = _extract_final_answer(answer.strip())
     cleaned = re.sub(r"#{1,6}\s*", "", cleaned)
     cleaned = cleaned.replace("**", "").replace("__", "")
+    cleaned = cleaned.replace("FINAL:", "").replace("Final:", "").replace("final:", "")
     cleaned = re.sub(r"^\s*[-*•]\s+", "", cleaned, flags=re.MULTILINE)
     cleaned = re.sub(r"^\s*\d+[.)]\s+", "", cleaned, flags=re.MULTILINE)
     cleaned = re.sub(r"\s*\n+\s*", " ", cleaned)
     cleaned = re.sub(r"\s{2,}", " ", cleaned)
     return cleaned.strip()
+
+
+def _extract_final_answer(answer: str) -> str:
+    marker_match = re.search(r"(?:^|\n)\s*FINAL\s*:\s*(.+)", answer, flags=re.IGNORECASE | re.DOTALL)
+    if marker_match:
+        return marker_match.group(1).strip()
+
+    reasoning_markers = [
+        "We need to answer:",
+        "The question asks:",
+        "Let's scan.",
+        "Thus answer:",
+        "So answer:",
+    ]
+    lowered = answer.lower()
+    for marker in reasoning_markers:
+        index = lowered.rfind(marker.lower())
+        if index != -1:
+            return answer[index + len(marker):].strip()
+
+    final_phrase_match = re.search(
+        r"(بناء على.+|استنادا.+|استناداً.+|يقصد.+|لا توفر.+|لا يقدم.+)",
+        answer,
+        flags=re.DOTALL,
+    )
+    if final_phrase_match:
+        return final_phrase_match.group(1).strip()
+
+    Arabic_range = r"\u0600-\u06ff"
+    arabic_sentences = re.findall(rf"[{Arabic_range}][^{Arabic_range}]*(?:[{Arabic_range}][^.!؟\n]*)+", answer)
+    if arabic_sentences:
+        useful = " ".join(part.strip() for part in arabic_sentences if part.strip())
+        if useful:
+            return useful
+
+    return answer
+
+
+def _trim_source_text(text: str) -> str:
+    max_chars = _env_int("RAG_SOURCE_MAX_CHARS", 1200)
+    cleaned = re.sub(r"\s+", " ", text).strip()
+    if len(cleaned) <= max_chars:
+        return cleaned
+    return cleaned[:max_chars].rstrip() + "..."
+
+
+def _env_float(name: str, default: float) -> float:
+    try:
+        return float(os.getenv(name, default))
+    except (TypeError, ValueError):
+        return default
+
+
+def _env_int(name: str, default: int) -> int:
+    try:
+        return int(os.getenv(name, default))
+    except (TypeError, ValueError):
+        return default
