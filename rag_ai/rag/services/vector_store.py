@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
@@ -126,3 +127,29 @@ class ChromaVectorStore:
 
     def count_chunks(self) -> int:
         return self.collection.count()
+
+    def source_stats(self) -> list[dict[str, Any]]:
+        rows = self.collection.get(include=["metadatas"])
+        stats: dict[str, dict[str, Any]] = defaultdict(
+            lambda: {
+                "source": "",
+                "source_path": "",
+                "chunks": 0,
+                "page_count": 0,
+                "embedding_provider": "",
+            }
+        )
+
+        for metadata in rows.get("metadatas", []):
+            metadata = metadata or {}
+            source_path = str(metadata.get("source_path") or "")
+            source = str(metadata.get("source") or source_path or "unknown")
+            key = source_path or source
+            item = stats[key]
+            item["source"] = source
+            item["source_path"] = source_path
+            item["chunks"] += 1
+            item["page_count"] = max(item["page_count"], int(metadata.get("page_count") or 0))
+            item["embedding_provider"] = str(metadata.get("embedding_provider") or "")
+
+        return sorted(stats.values(), key=lambda item: item["source"])
