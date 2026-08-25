@@ -6,6 +6,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 
 from rag.services.collections import collection_name_for_provider
+from rag.services.embeddings import get_embedding_provider
 from rag.services.ingestion import ingest_pdf
 
 
@@ -44,16 +45,17 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        provider = get_embedding_provider(options["embedding_provider"])
         chroma_path = Path(options["chroma_path"] or settings.RAG_CHROMA_PATH)
         collection_name = options["collection"] or collection_name_for_provider(
             settings.RAG_CHROMA_COLLECTION,
-            options["embedding_provider"],
+            provider.name,
         )
         result = ingest_pdf(
             pdf_path=options["pdf_path"],
             persist_path=chroma_path,
             collection_name=collection_name,
-            embedding_provider=options["embedding_provider"],
+            embedding_provider=provider,
             max_tokens=options["max_tokens"],
             overlap_tokens=options["overlap_tokens"],
         )

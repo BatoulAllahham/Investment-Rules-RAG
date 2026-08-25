@@ -67,17 +67,25 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
             raise RuntimeError("Set OPENAI_API_KEY before using OpenAI embeddings.")
 
         client = OpenAI()
-        response = client.embeddings.create(model=self.model, input=texts)
+        response = client.embeddings.create(
+            model=self.model,
+            input=texts,
+            encoding_format="float",
+        )
         return [item.embedding for item in response.data]
 
 
 class OpenRouterEmbeddingProvider(EmbeddingProvider):
-    name = "openrouter-openai-text-embedding-3-small"
-    dimensions = 1536
+    name = "openrouter-nvidia-nemotron-3-embed-1b-free"
+    dimensions = 0
 
-    def __init__(self, model: str = "openai/text-embedding-3-small"):
+    def __init__(self, model: str | None = None):
+        model = model or os.getenv(
+            "OPENROUTER_EMBEDDING_MODEL",
+            "nvidia/nemotron-3-embed-1b:free",
+        )
         self.model = model
-        self.name = f"openrouter-{model.replace('/', '-')}"
+        self.name = f"openrouter-{model.replace('/', '-').replace(':', '-')}"
 
     def embed(self, texts: list[str]) -> list[list[float]]:
         try:
@@ -102,7 +110,11 @@ class OpenRouterEmbeddingProvider(EmbeddingProvider):
             api_key=api_key,
             default_headers=headers or None,
         )
-        response = client.embeddings.create(model=self.model, input=texts)
+        response = client.embeddings.create(
+            model=self.model,
+            input=texts,
+            encoding_format="float",
+        )
         return [item.embedding for item in response.data]
 
 
