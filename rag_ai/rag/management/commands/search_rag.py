@@ -27,14 +27,15 @@ class Command(BaseCommand):
         )
         parser.add_argument(
             "--embedding-provider",
-            default="local",
+            default=None,
             choices=["local", "openai", "openrouter", "text-embedding-3-small"],
-            help="Embedding backend used during ingestion.",
+            help="Embedding backend used during ingestion. Defaults to RAG_EMBEDDING_PROVIDER.",
         )
         parser.add_argument("--top-k", type=int, default=5)
 
     def handle(self, *args, **options):
-        provider = get_embedding_provider(options["embedding_provider"])
+        embedding_provider = options["embedding_provider"] or settings.RAG_EMBEDDING_PROVIDER
+        provider = get_embedding_provider(embedding_provider)
         chroma_path = Path(options["chroma_path"] or settings.RAG_CHROMA_PATH)
         collection_name = options["collection"] or collection_name_for_provider(
             settings.RAG_CHROMA_COLLECTION,
@@ -44,7 +45,7 @@ class Command(BaseCommand):
             question=options["question"],
             persist_path=chroma_path,
             collection_name=collection_name,
-            embedding_provider=options["embedding_provider"],
+            embedding_provider=embedding_provider,
             top_k=options["top_k"],
         )
 
@@ -53,13 +54,16 @@ class Command(BaseCommand):
             return
 
         for index, result in enumerate(results, start=1):
+            source_name = result.metadata.get("source", "unknown source")
             pages = (
                 f"page {result.page_start}"
                 if result.page_start == result.page_end
                 else f"pages {result.page_start}-{result.page_end}"
             )
             self.stdout.write("")
-            self.stdout.write(self.style.SUCCESS(f"{index}. score={result.score:.4f}, {pages}"))
+            self.stdout.write(
+                self.style.SUCCESS(f"{index}. {source_name}, {pages}, score={result.score:.4f}")
+            )
             if result.section_title:
                 self.stdout.write(f"Section: {result.section_title}")
             self.stdout.write(result.text[:1200])
