@@ -28,7 +28,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--embedding-provider",
             default=None,
-            choices=["local", "openai", "openrouter", "text-embedding-3-small"],
+            choices=["local", "openai", "openrouter", "bge-m3", "baai/bge-m3", "text-embedding-3-small"],
             help="Embedding backend used during ingestion.",
         )
         parser.add_argument(

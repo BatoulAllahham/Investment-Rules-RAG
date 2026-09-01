@@ -76,13 +76,13 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
 
 
 class OpenRouterEmbeddingProvider(EmbeddingProvider):
-    name = "openrouter-nvidia-nemotron-3-embed-1b-free"
-    dimensions = 0
+    name = "openrouter-baai-bge-m3"
+    dimensions = 1024
 
     def __init__(self, model: str | None = None):
         model = model or os.getenv(
             "OPENROUTER_EMBEDDING_MODEL",
-            "nvidia/nemotron-3-embed-1b:free",
+            "baai/bge-m3",
         )
         self.model = model
         self.name = f"openrouter-{model.replace('/', '-').replace(':', '-')}"
@@ -125,8 +125,10 @@ def get_embedding_provider(name: str = "local") -> EmbeddingProvider:
         return LocalHashEmbeddingProvider()
     if normalized in {"openai", "text-embedding-3-small"}:
         return OpenAIEmbeddingProvider()
-    if normalized in {"openrouter", "openrouter-openai", "openai/text-embedding-3-small"}:
+    if normalized in {"openrouter", "bge-m3", "baai/bge-m3"}:
         return OpenRouterEmbeddingProvider()
+    if normalized in {"openrouter-openai", "openai/text-embedding-3-small"}:
+        return OpenRouterEmbeddingProvider(model="openai/text-embedding-3-small")
     raise ValueError(f"Unknown embedding provider: {name}")
 
 
