@@ -128,13 +128,15 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 RAG_CHROMA_PATH = BASE_DIR / 'data' / 'chroma'
 RAG_CHROMA_COLLECTION = 'investment_rules'
+RAG_SOURCE_PDF_PATHS = [
+    BASE_DIR.parent / 'resources' / 'Investment Rule.pdf',
+    BASE_DIR.parent / 'resources' / 'Investment Rule 2.pdf',
+    BASE_DIR.parent / 'resources' / 'Investment Rule 3.pdf',
+]
 RAG_EMBEDDING_PROVIDER = os.getenv('RAG_EMBEDDING_PROVIDER', 'openrouter')
 RAG_CHAT_MODEL = os.getenv('RAG_CHAT_MODEL', 'openrouter/free')
-RAG_OCR_MODEL = os.getenv('RAG_OCR_MODEL', 'openrouter/free')
-RAG_OCR_PDF_ENGINE = os.getenv('RAG_OCR_PDF_ENGINE', 'cloudflare-ai')
 RAG_DEFAULT_TOP_K = int(os.getenv('RAG_DEFAULT_TOP_K', '5'))
 RAG_REQUEST_TIMEOUT = int(os.getenv('RAG_REQUEST_TIMEOUT', '180'))
 RAG_EMBEDDING_TIMEOUT = int(os.getenv('RAG_EMBEDDING_TIMEOUT', '120'))
-RAG_OCR_TIMEOUT = int(os.getenv('RAG_OCR_TIMEOUT', '180'))
 RAG_SOURCE_MAX_CHARS = int(os.getenv('RAG_SOURCE_MAX_CHARS', '1200'))
 RAG_MAX_OUTPUT_TOKENS = int(os.getenv('RAG_MAX_OUTPUT_TOKENS', '700'))
