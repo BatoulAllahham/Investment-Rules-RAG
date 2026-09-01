@@ -6,22 +6,27 @@ This Django project now has a small RAG ingestion pipeline in the `rag` app.
 
 1. Extracts selectable text from a PDF page by page.
 2. Cleans repeated headers, footers, empty lines, and spacing noise.
-3. Splits the text into overlapping chunks.
+3. Splits the text into legal-aware chunks, preferring article boundaries.
 4. Creates one embedding vector for each chunk.
 5. Stores the source document, chunk metadata, chunk text, and vectors in a local Chroma vector database.
 6. Searches the stored chunks by comparing a customer question vector to the chunk vectors.
 
 ## Why chunking is done this way
 
-The chunker starts from document structure instead of blindly cutting every N characters. It keeps page numbers, watches for likely headings such as Arabic legal sections and articles, and avoids splitting in the middle of normal paragraphs when possible.
+The chunker uses a hybrid legal strategy. It first looks for real article headers such as `المادة (١)` and the reversed PDF-extraction form `:/ 1 المادة`. When enough article headers are found, each article becomes its own chunk with stable legal metadata. If the text does not have reliable article markers, the chunker falls back to paragraph/section chunks.
 
-The default chunk size is about 800 tokens with 120 tokens of overlap. The overlap helps when a customer asks a question whose answer crosses the boundary between two chunks.
+The default chunk size is about 800 tokens. Normal articles stay together whenever possible. Very long articles are split into smaller parts while keeping the same article metadata. Non-article fallback sections still use 120 tokens of overlap.
 
 Each chunk stores:
 
 - source PDF name
 - page start and page end
 - section title, when detected
+- chunk type: article, article part, section, or text
+- legal source type, such as law, decree, or decision, when detected
+- document number and year, when detected
+- chapter, when detected
+- article number, when detected
 - chunk index
 - token count
 - original chunk text

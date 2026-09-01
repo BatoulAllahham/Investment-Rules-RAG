@@ -57,6 +57,8 @@ def answer_with_openrouter(
                     "If the answer is not supported by the excerpts, say that the document "
                     "does not provide enough information. Cite source numbers and page numbers. "
                     "When possible, cite the document filename together with the page number. "
+                    "When source metadata includes an article number, mention that article in "
+                    "the answer if it supports the answer. "
                     "If relevant excerpts come from more than one document, use the strongest "
                     "evidence from all relevant documents instead of relying on only one file. "
                     "Write the final answer as plain text only. Do not use Markdown, headings, "
@@ -94,6 +96,7 @@ def _build_user_prompt(question: str, sources: list[SearchResult]) -> str:
         "- Do not include reasoning, analysis, notes, or phrases like 'We need to answer'.\n"
         "- Do not use headings, bullet points, numbered lists, #, **, or line breaks.\n"
         "- For Arabic answers, prefer this style: بناء على المادة المذكورة في القانون، ...\n"
+        "- If Legal reference is provided for a source, use it for legal citations.\n"
         "- Include citations like [Investment Rule 2.pdf, page 12] or [Investment Rule 3.pdf, pages 4-5].\n"
         "- If multiple documents contain relevant evidence, cite each relevant document.\n"
         "- If the answer is not present, say the document does not provide enough information.\n"
@@ -108,8 +111,31 @@ def _format_source(index: int, source: SearchResult) -> str:
         else f"pages {source.page_start}-{source.page_end}"
     )
     section = f"\nSection: {source.section_title}" if source.section_title else ""
+    legal_reference = _legal_reference(source)
+    legal = f"\nLegal reference: {legal_reference}" if legal_reference else ""
     source_text = _trim_source_text(source.text)
-    return f"[source {index}: {source_name}, {pages}]{section}\n{source_text}"
+    return f"[source {index}: {source_name}, {pages}]{legal}{section}\n{source_text}"
+
+
+def _legal_reference(source: SearchResult) -> str:
+    metadata = source.metadata
+    parts = []
+    source_type = str(metadata.get("source_type") or "")
+    document_number = str(metadata.get("document_number") or "")
+    document_year = str(metadata.get("document_year") or "")
+    article_number = str(metadata.get("article_number") or "")
+    chapter = str(metadata.get("chapter") or "")
+
+    if source_type and document_number:
+        document_label = f"{source_type} رقم {document_number}"
+        if document_year:
+            document_label += f" لعام {document_year}"
+        parts.append(document_label)
+    if chapter:
+        parts.append(chapter)
+    if article_number:
+        parts.append(f"المادة ({article_number})")
+    return " - ".join(parts)
 
 
 def _openrouter_headers() -> dict[str, str] | None:

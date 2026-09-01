@@ -81,6 +81,12 @@ def ask_rag_api(request: HttpRequest) -> JsonResponse:
                     "page_start": source.page_start,
                     "page_end": source.page_end,
                     "section_title": source.section_title,
+                    "chunk_type": source.metadata.get("chunk_type", ""),
+                    "source_type": source.metadata.get("source_type", ""),
+                    "document_number": source.metadata.get("document_number", ""),
+                    "document_year": source.metadata.get("document_year", ""),
+                    "chapter": source.metadata.get("chapter", ""),
+                    "article_number": source.metadata.get("article_number", ""),
                     "snippet": _single_line(source.text[:700]),
                     "metadata": source.metadata,
                 }

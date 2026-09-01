@@ -66,4 +66,23 @@ class Command(BaseCommand):
             )
             if result.section_title:
                 self.stdout.write(f"Section: {result.section_title}")
+            legal_label = _legal_label(result.metadata)
+            if legal_label:
+                self.stdout.write(f"Legal reference: {legal_label}")
             self.stdout.write(result.text[:1200])
+
+
+def _legal_label(metadata) -> str:
+    parts = []
+    source_type = metadata.get("source_type")
+    document_number = metadata.get("document_number")
+    document_year = metadata.get("document_year")
+    article_number = metadata.get("article_number")
+    if source_type and document_number:
+        label = f"{source_type} رقم {document_number}"
+        if document_year:
+            label += f" لعام {document_year}"
+        parts.append(label)
+    if article_number:
+        parts.append(f"المادة ({article_number})")
+    return " - ".join(parts)

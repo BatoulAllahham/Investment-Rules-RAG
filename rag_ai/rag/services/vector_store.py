@@ -74,6 +74,12 @@ class ChromaVectorStore:
                     "section_title": chunk.section_title,
                     "chunk_index": chunk.chunk_index,
                     "token_count": chunk.token_count,
+                    "chunk_type": chunk.chunk_type,
+                    "source_type": chunk.source_type,
+                    "document_number": chunk.document_number,
+                    "document_year": chunk.document_year,
+                    "chapter": chunk.chapter,
+                    "article_number": chunk.article_number,
                     "embedding_provider": embedding_provider,
                 }
             )
@@ -147,6 +153,8 @@ class ChromaVectorStore:
                 "chunks": 0,
                 "page_count": 0,
                 "embedding_provider": "",
+                "article_chunks": 0,
+                "section_chunks": 0,
             }
         )
 
@@ -161,5 +169,10 @@ class ChromaVectorStore:
             item["chunks"] += 1
             item["page_count"] = max(item["page_count"], int(metadata.get("page_count") or 0))
             item["embedding_provider"] = str(metadata.get("embedding_provider") or "")
+            chunk_type = str(metadata.get("chunk_type") or "")
+            if chunk_type.startswith("article"):
+                item["article_chunks"] += 1
+            else:
+                item["section_chunks"] += 1
 
         return sorted(stats.values(), key=lambda item: item["source"])

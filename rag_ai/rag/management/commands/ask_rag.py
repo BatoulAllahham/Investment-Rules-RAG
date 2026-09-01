@@ -71,4 +71,26 @@ class Command(BaseCommand):
                 if source.page_start == source.page_end
                 else f"pages {source.page_start}-{source.page_end}"
             )
-            self.stdout.write(f"{index}. {source_name}, {pages} | score={source.score:.4f}")
+            legal_label = _legal_label(source.metadata)
+            if legal_label:
+                self.stdout.write(
+                    f"{index}. {source_name}, {pages}, {legal_label} | score={source.score:.4f}"
+                )
+            else:
+                self.stdout.write(f"{index}. {source_name}, {pages} | score={source.score:.4f}")
+
+
+def _legal_label(metadata) -> str:
+    parts = []
+    source_type = metadata.get("source_type")
+    document_number = metadata.get("document_number")
+    document_year = metadata.get("document_year")
+    article_number = metadata.get("article_number")
+    if source_type and document_number:
+        label = f"{source_type} رقم {document_number}"
+        if document_year:
+            label += f" لعام {document_year}"
+        parts.append(label)
+    if article_number:
+        parts.append(f"المادة ({article_number})")
+    return " - ".join(parts)
