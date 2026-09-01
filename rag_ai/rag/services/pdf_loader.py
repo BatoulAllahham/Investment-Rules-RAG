@@ -25,9 +25,6 @@ def extract_pdf_text(pdf_path: str | Path) -> list[PageText]:
     if not path.exists():
         raise FileNotFoundError(f"PDF not found: {path}")
 
-    if _force_ocr():
-        return _extract_with_ocr(path)
-
     pages = _extract_with_pypdf(path)
     if _has_usable_text(pages):
         return pages
@@ -36,12 +33,8 @@ def extract_pdf_text(pdf_path: str | Path) -> list[PageText]:
     if _has_usable_text(pages):
         return pages
 
-    pages = _extract_with_ocr(path)
-    if _has_usable_text(pages):
-        return pages
-
     raise PDFExtractionError(
-        "No selectable text or OCR text was extracted from this PDF."
+        "No selectable text was extracted from this PDF."
     )
 
 
@@ -73,21 +66,3 @@ def _extract_with_pdfplumber(path: Path) -> list[PageText]:
 
 def _has_usable_text(pages: Iterable[PageText]) -> bool:
     return sum(len(page.text.strip()) for page in pages) > 100
-
-
-def _extract_with_ocr(path: Path) -> list[PageText]:
-    try:
-        from .openrouter_pdf_ocr import extract_pdf_with_openrouter_ocr
-    except ImportError as exc:
-        raise PDFExtractionError("OpenRouter OCR is not available.") from exc
-
-    try:
-        return extract_pdf_with_openrouter_ocr(path)
-    except Exception as exc:
-        raise PDFExtractionError(str(exc)) from exc
-
-
-def _force_ocr() -> bool:
-    import os
-
-    return os.getenv("RAG_FORCE_OCR", "").strip().lower() in {"1", "true", "yes", "on"}
