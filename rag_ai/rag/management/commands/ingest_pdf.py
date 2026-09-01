@@ -8,6 +8,7 @@ from django.core.management.base import BaseCommand
 from rag.services.collections import collection_name_for_provider
 from rag.services.embeddings import get_embedding_provider
 from rag.services.ingestion import ingest_pdf
+from rag.services.vector_store import ChromaVectorStore
 
 
 class Command(BaseCommand):
@@ -16,8 +17,8 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument(
             "pdf_paths",
-            nargs="+",
-            help="Path to one or more source PDFs.",
+            nargs="*",
+            help="Path to one or more source PDFs. Defaults to RAG_SOURCE_PDF_PATHS.",
         )
         parser.add_argument(
             "--chroma-path",
@@ -32,7 +33,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--embedding-provider",
             default=None,
-            choices=["local", "openai", "openrouter", "text-embedding-3-small"],
+            choices=["local", "openai", "openrouter", "bge-m3", "baai/bge-m3", "text-embedding-3-small"],
             help="Embedding backend to use. Defaults to RAG_EMBEDDING_PROVIDER.",
         )
         parser.add_argument(
@@ -47,6 +48,11 @@ class Command(BaseCommand):
             default=120,
             help="Approximate token overlap between neighboring chunks.",
         )
+        parser.add_argument(
+            "--reset",
+            action="store_true",
+            help="Clear the active Chroma collection before indexing.",
+        )
 
     def handle(self, *args, **options):
         embedding_provider = options["embedding_provider"] or settings.RAG_EMBEDDING_PROVIDER
@@ -58,7 +64,11 @@ class Command(BaseCommand):
         )
         results = []
         failures = []
-        for pdf_path in options["pdf_paths"]:
+        pdf_paths = options["pdf_paths"] or settings.RAG_SOURCE_PDF_PATHS
+        if options["reset"]:
+            ChromaVectorStore(chroma_path, collection_name).reset()
+
+        for pdf_path in pdf_paths:
             try:
                 results.append(
                     ingest_pdf(
