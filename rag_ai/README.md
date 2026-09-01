@@ -39,34 +39,37 @@ OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
 OPENROUTER_APP_TITLE=Investment Rules RAG
 OPENROUTER_HTTP_REFERER=http://localhost:8000
 RAG_EMBEDDING_PROVIDER=openrouter
-OPENROUTER_EMBEDDING_MODEL=nvidia/nemotron-3-embed-1b:free
+OPENROUTER_EMBEDDING_MODEL=baai/bge-m3
 RAG_CHAT_MODEL=openrouter/free
-RAG_OCR_MODEL=openrouter/free
-RAG_OCR_PDF_ENGINE=cloudflare-ai
 RAG_DEFAULT_TOP_K=5
 RAG_REQUEST_TIMEOUT=180
 RAG_EMBEDDING_TIMEOUT=120
-RAG_OCR_TIMEOUT=180
 RAG_SOURCE_MAX_CHARS=1200
 RAG_MAX_OUTPUT_TOKENS=700
 ```
 
 ```powershell
-python manage.py ingest_pdf "C:\Users\batoo\OneDrive\Desktop\Investment Rule.pdf"
+python manage.py ingest_pdf --reset
 ```
 
-You can index multiple PDFs into the same Chroma collection:
+By default, this indexes the three PDFs in the project `resources` folder:
+
+- `resources/Investment Rule.pdf`
+- `resources/Investment Rule 2.pdf`
+- `resources/Investment Rule 3.pdf`
+
+You can still pass explicit PDF paths if you want to index different files:
 
 ```powershell
-python manage.py ingest_pdf "C:\Users\batoo\OneDrive\Desktop\Investment Rule.pdf" "C:\Users\batoo\OneDrive\Desktop\Investment Rule 2.pdf" "C:\Users\batoo\OneDrive\Desktop\Investment Rule 3.pdf"
+python manage.py ingest_pdf "C:\Users\batoo\PycharmProjects\Investment-Rules-RAG\resources\Investment Rule.pdf" "C:\Users\batoo\PycharmProjects\Investment-Rules-RAG\resources\Investment Rule 2.pdf" "C:\Users\batoo\PycharmProjects\Investment-Rules-RAG\resources\Investment Rule 3.pdf" --reset
 ```
 
-If a PDF is scanned/image-only, the command falls back to OpenRouter PDF parsing with the free `cloudflare-ai` engine. If a PDF has selectable text but the extraction quality is poor, set `RAG_FORCE_OCR=true` in `.env` and re-index that PDF.
+All three source PDFs are treated as selectable/searchable PDFs. OCR is no longer part of the ingestion flow.
 
 Optional settings:
 
 ```powershell
-python manage.py ingest_pdf "C:\Users\batoo\OneDrive\Desktop\Investment Rule.pdf" --max-tokens 800 --overlap-tokens 120
+python manage.py ingest_pdf --max-tokens 800 --overlap-tokens 120
 ```
 
 The default Chroma persistence path is:
@@ -75,10 +78,10 @@ The default Chroma persistence path is:
 rag_ai/data/chroma
 ```
 
-By default, the command stores each embedding provider and model in a separate Chroma collection. For example, the default free OpenRouter embedding model uses:
+By default, the command stores each embedding provider and model in a separate Chroma collection. For example, the default OpenRouter BAAI/bge-m3 embedding model uses:
 
 ```text
-investment_rules_openrouter-nvidia-nemotron-3-embed-1b-free
+investment_rules_openrouter-baai-bge-m3
 ```
 
 ## Search indexed chunks
@@ -103,7 +106,7 @@ The default answer model is:
 openrouter/free
 ```
 
-This uses OpenRouter's free model router. OCR uses OpenRouter's free `cloudflare-ai` PDF engine. Free models are useful for demos and low-volume testing, but they can have lower rate limits, changing availability, slower responses, and less predictable answer quality than paid models.
+This uses OpenRouter's free model router. Free models are useful for demos and low-volume testing, but they can have lower rate limits, changing availability, slower responses, and less predictable answer quality than paid models.
 
 ## Ask through the backend API
 
@@ -137,13 +140,13 @@ Example response:
   "question": "ما هي شروط الاستثمار؟",
   "answer": "بناء على النصوص المسترجعة من القانون، فإن شروط الاستثمار تشمل تقديم الوثائق المطلوبة وارتباط المشروع بالقطاعات المشمولة بأحكام القانون، وذلك وفق ما ورد في المصادر المسترجعة [source 1, pages 35-36] [source 2, pages 38-39].",
   "model": "openrouter/free",
-  "collection": "investment_rules_openrouter-nvidia-nemotron-3-embed-1b-free",
+  "collection": "investment_rules_openrouter-baai-bge-m3",
   "top_k": 5,
   "sources": [
     {
       "source_number": 1,
       "source": "Investment Rule 2.pdf",
-      "source_path": "C:\\Users\\batoo\\OneDrive\\Desktop\\Investment Rule 2.pdf",
+      "source_path": "C:\\Users\\batoo\\PycharmProjects\\Investment-Rules-RAG\\resources\\Investment Rule 2.pdf",
       "score": 0.82,
       "page_start": 12,
       "page_end": 13,
@@ -157,6 +160,6 @@ Example response:
 
 ## Embeddings
 
-The project currently uses `local-hash-v1` by default. It is dependency-free and useful for proving that extraction, chunking, storage, and retrieval all work.
+The project can still use `local-hash-v1` if you explicitly request `--embedding-provider local`; it is dependency-free and useful only for proving that extraction, chunking, storage, and retrieval work.
 
-For zero-cost testing, the default OpenRouter embedding model is `nvidia/nemotron-3-embed-1b:free`. For stronger production-quality semantic search, you can switch to a paid embedding model such as OpenRouter `openai/text-embedding-3-small`, direct OpenAI `text-embedding-3-small`, sentence-transformers, or another multilingual embedding model. The embedding layer is isolated in `rag/services/embeddings.py` so this can be changed without rewriting the PDF extraction, chunking, or storage code.
+The default OpenRouter embedding model is `baai/bge-m3`, which returns 1024-dimensional vectors and is strong for multilingual retrieval. The chat answer model remains `openrouter/free`. If you need zero-cost embeddings again, set `OPENROUTER_EMBEDDING_MODEL` back to a free embedding model and re-index into that model's collection.
