@@ -103,7 +103,7 @@ This returns the most relevant Chroma chunks with page numbers. The next step is
 python manage.py ask_rag "ما هي شروط الاستثمار؟" --top-k 5
 ```
 
-This retrieves the top matching chunks from Chroma, sends only those chunks to the configured OpenRouter chat model, and returns an answer with page citations.
+This retrieves the top matching chunks from Chroma, sends only those chunks to the configured OpenRouter chat model, and returns a plain answer. Source metadata is returned separately by the API.
 
 The default answer model is:
 
@@ -143,7 +143,7 @@ Example response:
 ```json
 {
   "question": "ما هي شروط الاستثمار؟",
-  "answer": "بناء على النصوص المسترجعة من القانون، فإن شروط الاستثمار تشمل تقديم الوثائق المطلوبة وارتباط المشروع بالقطاعات المشمولة بأحكام القانون، وذلك وفق ما ورد في المصادر المسترجعة [source 1, pages 35-36] [source 2, pages 38-39].",
+  "answer": "بناء على النصوص المسترجعة من القانون، فإن شروط الاستثمار تشمل تقديم الوثائق المطلوبة وارتباط المشروع بالقطاعات المشمولة بأحكام القانون.",
   "model": "openrouter/free",
   "collection": "investment_rules_openrouter-baai-bge-m3",
   "top_k": 5,

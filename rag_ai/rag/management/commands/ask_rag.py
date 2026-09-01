@@ -11,7 +11,7 @@ from rag.services.qa import ask_question
 
 
 class Command(BaseCommand):
-    help = "Ask a question, retrieve relevant Chroma chunks, and generate a cited answer."
+    help = "Ask a question, retrieve relevant Chroma chunks, and generate an answer."
 
     def add_arguments(self, parser):
         parser.add_argument("question", help="Customer question to answer.")
