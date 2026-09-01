@@ -128,6 +128,16 @@ class ChromaVectorStore:
     def count_chunks(self) -> int:
         return self.collection.count()
 
+    def reset(self) -> None:
+        try:
+            self.client.delete_collection(self.collection_name)
+        except Exception:
+            pass
+        self.collection = self.client.get_or_create_collection(
+            name=self.collection_name,
+            metadata={"hnsw:space": "cosine"},
+        )
+
     def source_stats(self) -> list[dict[str, Any]]:
         rows = self.collection.get(include=["metadatas"])
         stats: dict[str, dict[str, Any]] = defaultdict(
